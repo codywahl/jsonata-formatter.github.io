@@ -1,1 +1,0 @@
-# jsonata-formatter.github.io

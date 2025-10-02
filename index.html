@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>JSONata Formatter</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <h1>JSONata Formatter</h1>
+
+    <div class="row">
+        <button id="fmt" title="Format now (manual)">Format</button>
+        <small>Typing or pasting in the left pane auto-formats after a brief pause.</small>
+    </div>
+
+    <div class="grid">
+        <textarea id="in">(
+  $x:=("Put " & 
+        "your " & 
+            "JSONata " & 
+                "here!!!");
+)</textarea>
+        <textarea id="out" placeholder="Formatted result…" readonly></textarea>
+    </div>
+
+    <footer>
+        <a href="https://github.com/codywahl" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+                style="vertical-align: middle; margin-right: 6px;">
+                <path
+                    d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2.2c-3.2.7-3.8-1.5-3.8-1.5-.6-1.5-1.4-1.9-1.4-1.9-1.2-.8.1-.8.1-.8 1.3.1 2 .9 2 .9 1.1 2 2.9 1.4 3.6 1 .1-.8.4-1.4.7-1.7-2.6-.3-5.4-1.3-5.4-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.9 1.2 2 1.2 3.2 0 4.7-2.8 5.7-5.4 6 .4.3.8 1 .8 2v3c0 .3.2.7.8.6A10.9 10.9 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" />
+            </svg>
+            GitHub
+        </a>
+    </footer>
+
+    <script type="module">
+        import { formatJsonata } from "https://esm.sh/@stedi/prettier-plugin-jsonata@2.1.6/dist/lib";
+
+        const $ = (id) => document.getElementById(id);
+        const input = $("in");
+        const output = $("out");
+        const btn = $("fmt");
+
+        // --- Debounce helper ---
+        const debounce = (fn, delay = 250) => {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...args), delay);
+            };
+        };
+
+        // Prevent out-of-order async updates
+        let runId = 0;
+
+        async function formatNow(src) {
+            const myId = ++runId;
+            try {
+                const result = await formatJsonata(src, {
+                    printWidth: 100,
+                    tabWidth: 2,
+                    useTabs: false
+                });
+                if (myId === runId) output.value = result;
+            } catch (e) {
+                if (myId === runId) output.value = `Error: ${e?.message || e}`;
+            }
+        }
+
+        const scheduleFormat = debounce(() => formatNow(input.value), 300);
+
+        // Format on typing/paste
+        input.addEventListener("input", scheduleFormat);
+        input.addEventListener("paste", scheduleFormat);
+
+        // Manual button
+        btn.addEventListener("click", () => formatNow(input.value));
+
+        // Initial pass
+        formatNow(input.value);
+    </script>
+</body>
+
+</html>
